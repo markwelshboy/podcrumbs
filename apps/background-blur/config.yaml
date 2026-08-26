@@ -64,7 +64,6 @@ blur:
   depth_normalization_percentile: 96.0
   subject_core_alpha: 0.95
   subject_core_erode_px_at_4k: 24
-  protect_subject: true
 
 output:
   png_compress_level: 6
