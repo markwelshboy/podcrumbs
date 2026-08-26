@@ -32,6 +32,10 @@ vitmatte:
   possible_foreground_threshold: 0.03
   erode_px_at_2048: 10
   dilate_px_at_2048: 24
+  # ViTMatte is a refiner here, not a second segmenter. Prevent it from growing
+  # new opaque foreground outside the BiRefNet support; this avoids dark/colored
+  # background pixels becoming a hard halo when the surrounding background blurs.
+  max_expand_px_at_2048: 0
 
 depth:
   backend: depthpro
