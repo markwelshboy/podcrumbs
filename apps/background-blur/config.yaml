@@ -1,0 +1,73 @@
+runtime:
+  device: cuda
+  dtype: float16
+
+input:
+  recursive: true
+  extensions: ['.png', '.jpg', '.jpeg', '.webp', '.tif', '.tiff']
+
+fbcnn:
+  mode: auto                 # on | auto | off. CLI --fbcnn overrides this.
+  repo_dir: vendor/FBCNN
+  model_path: models/fbcnn_color.pth
+  model_url: https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_color.pth
+  qf: auto                   # auto or integer 1..100. Lower = stronger cleanup.
+  tile_size: 1024            # 0 = whole image; tiled is safer for 3K/4K sources.
+  tile_overlap: 96
+
+matte:
+  mode: maximum              # high = BiRefNet HR only; maximum = BiRefNet HR -> ViTMatte-B
+
+birefnet:
+  model: ZhengPeng7/BiRefNet_HR-matting
+  input_size: 2048
+
+vitmatte:
+  model: hustvl/vitmatte-base-composition-1k
+  max_long_side: 2048
+  sure_foreground_threshold: 0.90
+  possible_foreground_threshold: 0.03
+  erode_px_at_2048: 10
+  dilate_px_at_2048: 24
+
+depth:
+  backend: depthpro
+  model: apple/DepthPro-hf
+  use_fov_model: false
+
+plate:
+  foreground_threshold: 0.01
+  expand_px_at_4k: 10
+  method: nearest            # nearest background propagation; avoids subject-colour bleed into blur
+
+blur:
+  # Radii are source-pixel radii scaled from a 4000px long side.
+  # target_radius = blur_map * max_radius_px_at_4k.
+  presets:
+    subtle:
+      strength: 0.45
+      focus_tolerance: 0.055
+      gamma: 1.25
+      max_radius_px_at_4k: 18
+    natural:
+      strength: 0.72
+      focus_tolerance: 0.040
+      gamma: 1.15
+      max_radius_px_at_4k: 34
+    strong:
+      strength: 1.00
+      focus_tolerance: 0.025
+      gamma: 1.00
+      max_radius_px_at_4k: 52
+  pyramid_fractions: [0.0, 0.08, 0.16, 0.28, 0.42, 0.60, 0.80, 1.0]
+  depth_normalization_percentile: 96.0
+  subject_core_alpha: 0.95
+  subject_core_erode_px_at_4k: 24
+  protect_subject: true
+
+output:
+  png_compress_level: 6
+  save_background_plate: true
+  save_depth_npy: true
+  save_intermediates: true
+  preview_long_side: 1200
