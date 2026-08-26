@@ -1,0 +1,52 @@
+# Background-removal comparison harness
+# Defaults favor quality over speed.
+
+input:
+  recursive: true
+  extensions: [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]
+
+runtime:
+  device: cuda
+  dtype: float16
+  unload_between_backends: true
+
+rmbg2:
+  model: briaai/RMBG-2.0
+  input_size: 1024
+
+birefnet:
+  model: ZhengPeng7/BiRefNet_HR-matting
+  input_size: 2048
+
+# Approximate foreground-colour estimation. This does not alter alpha;
+# it attempts to remove original-background colour contamination from edge RGB.
+foreground_refine:
+  large_blur: 90
+  small_blur: 6
+
+ben2:
+  model: PramaLLC/BEN2
+
+vitmatte:
+  model: hustvl/vitmatte-base-composition-1k
+  max_long_side: 2048
+  # Conservative trimap derived from the BiRefNet matte.
+  sure_foreground_threshold: 0.90
+  possible_foreground_threshold: 0.03
+  erode_px_at_2048: 10
+  dilate_px_at_2048: 22
+
+preview:
+  max_side: 900
+  checker_size: 32
+  # Gray is useful for spotting both dark and light edge contamination.
+  midgray: 128
+
+methods:
+  - rmbg2
+  - rmbg2_vitmatte
+  - birefnet_hr
+  - birefnet_hr_refined
+  - birefnet_vitmatte
+  - ben2_base
+  - ben2_refined

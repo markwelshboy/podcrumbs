@@ -1,0 +1,16 @@
+schema: 1
+name: background-removal
+title: Background Removal / Matting Comparator
+commands: [bg-remove]
+remote:
+  entrypoint: compare_backgrounds.py
+  default_config: config.yaml
+  gpu: true
+artifacts:
+  report: report.html
+  comparison: comparison.csv
+  metadata: metadata.json
+companions:
+  review:
+    entrypoint: companions/review.py
+    requirements: companions/requirements.txt
