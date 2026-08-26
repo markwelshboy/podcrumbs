@@ -1,11 +1,14 @@
 schema: 1
 name: background-blur
 title: Depth-aware Background Blur
+config: config.yaml
+controls: controls.yaml
 commands: [bg-blur]
 remote:
-  entrypoint: background_blur.py
-  default_config: config.yaml
+  entrypoint: run.py
+  implementation: background_blur.py
   gpu: true
 artifacts:
   report: report.html
   metadata: metadata.json
+  resolved_controls: resolved-controls.yaml
