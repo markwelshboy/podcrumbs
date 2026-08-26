@@ -10,7 +10,7 @@ controls:
   recursive:
     flag: --recursive
     negative_flag: --no-recursive
-    type: boolean
+    type: toggle
     default: true
     help: Scan input subdirectories.
   limit:
