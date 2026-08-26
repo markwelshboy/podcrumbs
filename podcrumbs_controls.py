@@ -40,8 +40,8 @@ def load_control_definitions(path: Path) -> dict[str, dict[str, Any]]:
             raise ValueError(f"control {name!r} must declare a default")
         kind = str(spec.get("type", "string"))
         if kind == "flag":
-            if not isinstance(spec["default"], bool):
-                raise ValueError(f"flag control {name!r} must have a boolean default")
+            if spec["default"] is not False:
+                raise ValueError(f"flag control {name!r} must default to false; use type: toggle for a switchable true default")
             if spec.get("negative_flag"):
                 raise ValueError(f"flag control {name!r} cannot declare negative_flag; use type: toggle")
         elif kind == "toggle":
