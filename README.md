@@ -1,12 +1,37 @@
 # podcrumbs
 
-`podcrumbs` is the application catalog for [Podlets](https://github.com/markwelshboy/podlets): small GPU image-processing tools, their configs/bootstrap logic, and optional local companion apps.
+`podcrumbs` is the application catalog for [Podlets](https://github.com/markwelshboy/podlets): small GPU image-processing tools, their structural configs, declared controls, bootstrap logic, and optional local companion apps.
 
 The split is deliberate:
 
 - **podlets** owns job orchestration, staging, lifecycle, logs, GPU gating and fetch.
 - **pod-runtime** owns generic worker/bootstrap/Hugging Face helpers.
 - **podcrumbs** owns runnable applications.
+
+## App contract
+
+Every Podcrumb separates three concerns:
+
+```text
+app.yaml        identity, entrypoints, artifacts and companions
+config.yaml     structural implementation/capabilities
+controls.yaml   explicitly declared user-facing knobs and their defaults
+```
+
+`config.yaml` is code-facing. It contains model IDs, backend definitions, pipeline structure, blur preset definitions, registration settings, OCR machinery, etc. Changing it generally means changing what the application can do and may require matching code changes.
+
+`controls.yaml` is the normal run surface. A backend or structural option is not automatically user-selectable merely because it exists in `config.yaml`; it must be deliberately exposed as a control.
+
+The thin app `run.py` resolves controls, creates the runtime configuration expected by the underlying harness, and records the run contract in the output directory:
+
+```text
+structural-config.yaml
+controls-definition.yaml
+resolved-controls.yaml
+podcrumb-run.json
+```
+
+This makes fetched results reproducible even if application defaults later change.
 
 ## Initial apps
 
@@ -16,17 +41,32 @@ The split is deliberate:
 | `bg-blur` | `apps/background-blur` | Matte-protected, Depth Pro-driven background blur with optional FBCNN restoration. |
 | `text-remove` | `apps/text-removal` | OCR-guided text/watermark removal using Qwen, FireRed or FLUX.2 Klein editors. |
 
-Each app keeps its original harness config, smoke test and bootstrap logic. Podlet adapters live in `commands/` and are intentionally thin.
+## Discovering and inspecting commands
 
-## Podlets usage
-
-With `podcrumbs` checked out at `~/git/podcrumbs`, a Podlets build with catalog discovery will find these commands automatically. Until then, or from a non-standard checkout path:
+With `podcrumbs` checked out at `~/git/podcrumbs`, a Podlets build with catalog discovery finds the commands automatically. A non-standard location can still be configured with:
 
 ```bash
-sl config command-dir ~/git/podcrumbs/commands
+sl config command-dir /path/to/podcrumbs/commands
 ```
 
-Examples:
+Inspect the declared run surface without touching a GPU worker:
+
+```bash
+sl commands
+sl command help bg-remove
+sl command controls bg-remove
+sl command config bg-remove
+sl command show bg-remove
+```
+
+The distinction is intentional:
+
+- `help` renders normal user controls.
+- `controls` shows the declaration/defaults.
+- `config` shows the structural implementation config.
+- `show` shows the low-level Podlets `.cmd` adapter.
+
+## Examples
 
 ```bash
 sl run bg-remove \
@@ -48,7 +88,7 @@ sl run text-remove \
   text-remove-01/ \
   --output-dir ~/results \
   -- \
-  --compare-editors
+  --editors qwen firered klein
 ```
 
 Remote app environments are isolated under `/workspace/.sl/cache/podcrumbs/envs/`. The apps share `/workspace/.sl/cache/huggingface` so common models such as BiRefNet and ViTMatte are not downloaded independently for every tool.
@@ -70,6 +110,7 @@ The review app compares successful foreground methods over black/white backgroun
 
 ```text
 podcrumbs/
+├── podcrumbs_controls.py     # shared control resolution/provenance helper
 ├── commands/                 # thin `sl` adapters
 ├── apps/
 │   ├── background-removal/
@@ -77,5 +118,3 @@ podcrumbs/
 │   └── text-removal/
 └── bin/crumb                 # local companion launcher
 ```
-
-`app.yaml` is descriptive metadata for now. The first version deliberately does not build a plugin framework around it; the convention can harden after these apps have been used in anger.
