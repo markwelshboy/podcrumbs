@@ -5,6 +5,9 @@ import numpy as np
 from PIL import Image
 
 import background_blur as bb
+from background_blur_ops import install, make_background_depth
+
+install(bb)
 
 
 def main():
@@ -25,7 +28,6 @@ def main():
         "blur": {
             "subject_core_alpha": 0.95,
             "subject_core_erode_px_at_4k": 20,
-            "protect_subject": True,
             "depth_normalization_percentile": 96.0,
         },
     }
@@ -37,10 +39,19 @@ def main():
     depth = 2.0 + (xx.astype(np.float32) / w) * 6.0
     depth[subject] = 2.0
     preset = {"strength": 0.8, "focus_tolerance": 0.04, "gamma": 1.1}
+    background_depth = make_background_depth(depth, alpha, cfg)
     bmap, focus = bb.build_blur_map(depth, alpha, preset, cfg)
     assert 1.8 < focus < 2.2
-    assert bmap[230, 320] == 0.0
+
+    # Subject pixels in the blur-control field inherit nearby background depth;
+    # they must not become an artificial zero-blur island/collar.
+    assert background_depth[230, 320] > 2.0
+    assert bmap[230, 320] > 0.0
     assert bmap[240, 620] > bmap[240, 400]
+
+    # The comparison blur is genuinely uniform across the subject-free plate.
+    ub = bb.uniform_blur_map(alpha, 0.72)
+    assert np.allclose(ub, 0.72)
 
     out = bb.variable_gaussian_blur(plate, bmap, 18, [0, .1, .25, .5, .75, 1])
     final = bb.composite_subject(rgb, out, alpha)
