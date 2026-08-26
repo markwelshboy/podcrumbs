@@ -1,22 +1,25 @@
+schema: 1
+
 runtime:
   device: cuda
   dtype: float16
 
 input:
-  recursive: true
   extensions: ['.png', '.jpg', '.jpeg', '.webp', '.tif', '.tiff']
 
 fbcnn:
-  mode: auto                 # on | auto | off. CLI --fbcnn overrides this.
   repo_dir: vendor/FBCNN
   model_path: models/fbcnn_color.pth
   model_url: https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_color.pth
-  qf: auto                   # auto or integer 1..100. Lower = stronger cleanup.
-  tile_size: 1024            # 0 = whole image; tiled is safer for 3K/4K sources.
+  tile_size: 1024
   tile_overlap: 96
 
 matte:
-  mode: maximum              # high = BiRefNet HR only; maximum = BiRefNet HR -> ViTMatte-B
+  modes:
+    high:
+      pipeline: birefnet
+    maximum:
+      pipeline: birefnet_vitmatte
 
 birefnet:
   model: ZhengPeng7/BiRefNet_HR-matting
@@ -38,11 +41,9 @@ depth:
 plate:
   foreground_threshold: 0.01
   expand_px_at_4k: 10
-  method: nearest            # nearest background propagation; avoids subject-colour bleed into blur
+  method: nearest
 
 blur:
-  # Radii are source-pixel radii scaled from a 4000px long side.
-  # target_radius = blur_map * max_radius_px_at_4k.
   presets:
     subtle:
       strength: 0.45
