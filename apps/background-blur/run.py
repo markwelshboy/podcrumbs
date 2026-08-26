@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import subprocess
 import sys
 from pathlib import Path
 
@@ -40,19 +39,31 @@ def main() -> int:
         resolved=resolved,
     )
     runtime_cfg = write_runtime_config(cfg)
+    old_argv = sys.argv[:]
     try:
-        cmd = [
-            sys.executable, str(ROOT / "background_blur.py"), str(args.input), str(args.output),
+        # Keep the mature GPU harness intact, but inject the boundary-safe blur
+        # operations before entering it. This makes alpha protection happen once
+        # (at final compositing) and replaces subject depth beneath the matte with
+        # nearby real background depth before building the blur map.
+        import background_blur as impl
+        from background_blur_ops import install
+
+        install(impl)
+        impl_args = [
+            str(ROOT / "background_blur.py"), str(args.input), str(args.output),
             "--config", str(runtime_cfg), "--preset", str(resolved["preset"]),
         ]
         if resolved["compare"]:
-            cmd.append("--compare")
+            impl_args.append("--compare")
         if int(resolved["limit"]) > 0:
-            cmd += ["--limit", str(resolved["limit"])]
+            impl_args += ["--limit", str(resolved["limit"])]
         if resolved["force"]:
-            cmd.append("--force")
-        return subprocess.call(cmd)
+            impl_args.append("--force")
+        sys.argv = impl_args
+        result = impl.main()
+        return int(result or 0)
     finally:
+        sys.argv = old_argv
         runtime_cfg.unlink(missing_ok=True)
 
 
