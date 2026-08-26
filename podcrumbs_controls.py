@@ -38,6 +38,18 @@ def load_control_definitions(path: Path) -> dict[str, dict[str, Any]]:
             raise ValueError(f"control {name!r} must declare a --flag")
         if "default" not in spec:
             raise ValueError(f"control {name!r} must declare a default")
+        kind = str(spec.get("type", "string"))
+        if kind == "flag":
+            if not isinstance(spec["default"], bool):
+                raise ValueError(f"flag control {name!r} must have a boolean default")
+            if spec.get("negative_flag"):
+                raise ValueError(f"flag control {name!r} cannot declare negative_flag; use type: toggle")
+        elif kind == "toggle":
+            if not isinstance(spec["default"], bool):
+                raise ValueError(f"toggle control {name!r} must have a boolean default")
+            negative = spec.get("negative_flag")
+            if not isinstance(negative, str) or not negative.startswith("--"):
+                raise ValueError(f"toggle control {name!r} must declare a --negative_flag")
         out[str(name)] = spec
     return out
 
@@ -55,12 +67,13 @@ def add_control_arguments(parser: argparse.ArgumentParser, definitions: Mapping[
         if isinstance(choices, list):
             kwargs["choices"] = [str(x) for x in choices]
 
-        if kind == "boolean":
+        if kind == "flag":
+            parser.add_argument(flag, dest=name, action="store_true", default=None, help=help_text)
+            continue
+        if kind == "toggle":
             group = parser.add_mutually_exclusive_group()
             group.add_argument(flag, dest=name, action="store_true", default=None, help=help_text)
-            negative = spec.get("negative_flag")
-            if negative:
-                group.add_argument(str(negative), dest=name, action="store_false", help=argparse.SUPPRESS)
+            group.add_argument(str(spec["negative_flag"]), dest=name, action="store_false", help=argparse.SUPPRESS)
             continue
         if kind == "integer":
             kwargs["type"] = int
