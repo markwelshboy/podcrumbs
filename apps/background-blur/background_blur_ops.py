@@ -14,26 +14,51 @@ def _ellipse(radius: int) -> np.ndarray:
     return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))
 
 
-def background_exclusion_mask(alpha: np.ndarray, cfg: dict[str, Any]) -> np.ndarray:
-    """Return subject/edge pixels that must not seed background RGB/depth."""
-    pc = cfg["plate"]
-    mask = alpha >= float(pc.get("foreground_threshold", 0.01))
+def _subject_mask(alpha: np.ndarray, threshold: float, expand_px_at_4k: float) -> np.ndarray:
+    mask = alpha >= float(threshold)
     scale = max(alpha.shape) / 4000.0
-    expand = max(0, round(float(pc.get("expand_px_at_4k", 10)) * scale))
+    expand = max(0, round(float(expand_px_at_4k) * scale))
     if expand > 0:
         mask = cv2.dilate(mask.astype(np.uint8), _ellipse(expand), iterations=1).astype(bool)
     return mask
 
 
-def make_background_depth(depth: np.ndarray, alpha: np.ndarray, cfg: dict[str, Any]) -> np.ndarray:
-    """Fill subject/invalid depth from nearest valid background depth.
+def background_exclusion_mask(alpha: np.ndarray, cfg: dict[str, Any]) -> np.ndarray:
+    """Return the RGB-plate subject mask using the plate's small safety expansion."""
+    pc = cfg["plate"]
+    return _subject_mask(
+        alpha,
+        float(pc.get("foreground_threshold", 0.01)),
+        float(pc.get("expand_px_at_4k", 10)),
+    )
 
-    Depth Pro sees the subject itself at roughly the focal distance.  If those
-    values are used beneath a soft matte, they create a narrow in-focus collar
-    around the subject.  The RGB plate already replaces the subject with nearby
-    real background; the blur-control depth field must do the same.
+
+def depth_exclusion_mask(alpha: np.ndarray, cfg: dict[str, Any]) -> np.ndarray:
+    """Return the wider guard used to reject foreground-depth edge bleed.
+
+    Depth estimators can extend the subject's focal-depth values beyond the
+    actual alpha edge.  That contamination must not seed the background-only
+    depth field or it produces a narrow low-blur band around one side of a
+    silhouette.  The depth guard is deliberately wider than the RGB plate guard.
     """
-    excluded = background_exclusion_mask(alpha, cfg)
+    pc = cfg["plate"]
+    dc = cfg.get("depth", {})
+    return _subject_mask(
+        alpha,
+        float(pc.get("foreground_threshold", 0.01)),
+        float(dc.get("edge_guard_px_at_4k", pc.get("expand_px_at_4k", 10))),
+    )
+
+
+def make_background_depth(depth: np.ndarray, alpha: np.ndarray, cfg: dict[str, Any]) -> np.ndarray:
+    """Fill subject, edge-guard and invalid depth from nearest true background.
+
+    The original depth map remains authoritative for estimating the subject's
+    focal distance.  Blur control uses this cleaned field, so both the subject
+    itself and any small Depth-Pro halo outside its matte are replaced by nearby
+    background depth before blur strength is calculated.
+    """
+    excluded = depth_exclusion_mask(alpha, cfg)
     valid = np.isfinite(depth) & (depth > 1e-4)
     seeds = (~excluded) & valid
 
