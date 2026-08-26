@@ -3,6 +3,7 @@ controls:
   fbcnn:
     flag: --fbcnn
     type: choice
+    metavar: MODE
     choices: [on, auto, off]
     default: auto
     help: JPEG artifact restoration mode.
@@ -15,12 +16,14 @@ controls:
   matte:
     flag: --matte
     type: choice
+    metavar: MODE
     choices: [high, maximum]
     default: maximum
     help: Subject matte quality path.
   preset:
     flag: --preset
     type: choice
+    metavar: PRESET
     choices: [subtle, natural, strong]
     default: natural
     help: Depth-aware blur preset.
