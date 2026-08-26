@@ -61,6 +61,33 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(resolved["limit"], 2)
         self.assertFalse(resolved["recursive"])
 
+    def test_presence_flags_take_no_boolean_value(self):
+        _, _, controls, _ = self.load("background-blur")
+        parser = argparse.ArgumentParser()
+        add_control_arguments(parser, controls)
+        args = parser.parse_args(["--compare"])
+        resolved = resolve_controls(args, controls)
+        self.assertTrue(resolved["compare"])
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["--compare", "true"])
+
+    def test_flag_and_toggle_types_are_explicit(self):
+        _, _, blur_controls, _ = self.load("background-blur")
+        self.assertEqual(blur_controls["compare"]["type"], "flag")
+        self.assertEqual(blur_controls["force"]["type"], "flag")
+        self.assertEqual(blur_controls["recursive"]["type"], "toggle")
+        _, _, text_controls, _ = self.load("text-removal")
+        self.assertEqual(text_controls["dry_run"]["type"], "flag")
+        self.assertEqual(text_controls["force"]["type"], "flag")
+        self.assertEqual(text_controls["force_edits"]["type"], "flag")
+        self.assertEqual(text_controls["recursive"]["type"], "toggle")
+
+    def test_birefnet_apps_declare_kornia(self):
+        for app in ("background-removal", "background-blur"):
+            with self.subTest(app=app):
+                requirements = (ROOT / "apps" / app / "requirements.txt").read_text(encoding="utf-8").lower()
+                self.assertRegex(requirements, r"(?m)^kornia(?:[<>=!~].*)?$")
+
 
 if __name__ == "__main__":
     unittest.main()
