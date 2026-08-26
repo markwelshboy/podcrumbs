@@ -9,7 +9,7 @@
 _podcrumbs_prepare_repo() {
   local root="$SL_CACHE_DIR/podcrumbs"
   local repo="$root/repo"
-  local ref="${PODCRUMBS_REF:-main}"
+  local ref="${PODCRUMBS_REF:-agent/initial-app-catalog}"
   mkdir -p "$root/envs" "$SL_CACHE_DIR/huggingface"
   if [[ ! -d "$repo/.git" ]]; then
     git clone --quiet --depth 1 --no-tags https://github.com/markwelshboy/podcrumbs.git "$repo"
