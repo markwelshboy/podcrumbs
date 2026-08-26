@@ -1,13 +1,9 @@
-# Text / watermark removal editor benchmark.
-# Source images can be high resolution (e.g. 3000x4000). Only local context
-# crops go through the generative editor; final compositing stays source-res.
+schema: 1
 
 input:
-  recursive: false
   extensions: [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"]
 
 ocr:
-  # Keep OCR on CPU so the image editor owns GPU VRAM.
   engine: transformers
   device: cpu
   lang: en
@@ -19,33 +15,15 @@ ocr:
   text_det_unclip_ratio: 1.5
   min_rec_score: 0.0
 
-selection:
-  # Regexes apply to OCR-recognized text. Null means no filter.
-  # Example include_regex: '(?i)sample|copyright|@creator'
-  include_regex: null
-  exclude_regex: null
+selection: {}
 
 regions:
-  # Nearby OCR words are merged and repaired together.
   group_gap_px: 32
-
-  # Source-resolution pixels. Overmasking is intentional: remove antialiasing,
-  # outline, glow, shadow and JPEG ringing instead of leaving watermark ghosts.
   mask_dilate_px: 18
   blend_feather_px: 12
-
-  # Qwen/FireRed/Klein see much more context than we paste back.
   context_scale: 3.0
   min_context_px: 160
   max_crop_aspect: 2.0
-
-benchmark:
-  # Normal non-comparison runs use this unless --editor is supplied.
-  default_editor: firered
-
-  # --compare-editors runs these sequentially (never resident together).
-  compare_editors: [qwen, firered, klein]
-  seed: 12345
 
 editors:
   qwen:
@@ -56,17 +34,13 @@ editors:
     dtype: bfloat16
     cpu_offload: false
     generator_device: cuda
-
-    # Preserve crop aspect ratio, target ~1MP, dimensions multiple of 32.
     target_megapixels: 1.0
     dimension_multiple: 32
     pre_resize_input: true
-
     num_inference_steps: 40
     true_cfg_scale: 4.0
     guidance_scale: 1.0
     negative_prompt: " "
-    seed: 12345
     prompt: &repair_prompt >-
       Remove all overlaid text, watermark lettering, logos, captions, or graphic
       overlay marks visible in this image crop. Reconstruct the original scene
@@ -92,7 +66,6 @@ editors:
     true_cfg_scale: 4.0
     guidance_scale: 1.0
     negative_prompt: " "
-    seed: 12345
     prompt: *repair_prompt
 
   klein:
@@ -103,22 +76,14 @@ editors:
     dtype: bfloat16
     cpu_offload: false
     generator_device: cuda
-
-    # Diffusers' Klein reference editing supports arbitrary ratios; we preserve
-    # the context-crop ratio, target ~1MP, and use a multiple of 16.
     target_megapixels: 1.0
     dimension_multiple: 16
     pre_resize_input: true
-
-    # Distilled Klein 9B is intended for 4-step inference.
     num_inference_steps: 4
     guidance_scale: 1.0
-    seed: 12345
     prompt: *repair_prompt
 
 registration:
-  # Every backend is independently registered against untouched source pixels
-  # before blending. This corrects small translation/zoom/rotation drift.
   enabled: true
   exclude_mask_expand_px: 48
   min_stable_fraction: 0.20
