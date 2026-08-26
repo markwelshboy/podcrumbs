@@ -6,7 +6,12 @@ import cv2
 from PIL import Image
 
 import background_blur as bb
-from background_blur_ops import install, make_background_depth, depth_exclusion_mask
+from background_blur_ops import (
+    constrain_refined_alpha,
+    depth_exclusion_mask,
+    install,
+    make_background_depth,
+)
 
 install(bb)
 
@@ -27,6 +32,7 @@ def main():
     cfg = {
         "plate": {"foreground_threshold": 0.01, "expand_px_at_4k": 8},
         "depth": {"edge_guard_px_at_4k": 64},
+        "vitmatte": {"max_expand_px_at_2048": 0},
         "blur": {
             "subject_core_alpha": 0.95,
             "subject_core_erode_px_at_4k": 20,
@@ -34,8 +40,16 @@ def main():
         },
     }
     plate = bb.make_background_plate(rgb, alpha, cfg)
-    # Center should no longer be the red subject colour.
     assert not np.all(plate[230, 320] == np.array([210, 55, 45], np.uint8))
+
+    # A refiner may change alpha inside BiRefNet support, but with zero expansion
+    # it must not invent new foreground outside that support.
+    refined = alpha.copy()
+    outside = cv2.dilate(subject.astype(np.uint8), np.ones((7, 7), np.uint8), iterations=1).astype(bool) & ~subject
+    refined[outside] = 0.9
+    constrained = constrain_refined_alpha(alpha, refined, cfg)
+    assert np.all(constrained[outside] == 0.0)
+    assert np.all(constrained[subject] == 1.0)
 
     # Metric depth plane: subject at 2m, background varying from 2m to 8m.
     depth = 2.0 + (xx.astype(np.float32) / w) * 6.0
@@ -52,15 +66,11 @@ def main():
     bmap, focus = bb.build_blur_map(depth, alpha, preset, cfg)
     assert 1.8 < focus < 2.2
 
-    # The configured guard must extend beyond the matte and contain the synthetic
-    # halo, then the cleaned depth field must replace those false focal values.
     assert np.count_nonzero(guard & ~subject) > 0
     guarded_halo = halo & guard
     assert np.any(guarded_halo)
     assert np.all(background_depth[guarded_halo] > 2.0)
 
-    # Subject pixels in the blur-control field inherit nearby background depth;
-    # they must not become an artificial zero-blur island/collar.
     assert background_depth[230, 320] > 2.0
     assert bmap[230, 320] > 0.0
     assert np.mean(bmap[guarded_halo]) > 0.0
