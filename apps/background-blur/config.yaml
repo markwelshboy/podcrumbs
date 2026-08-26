@@ -37,6 +37,10 @@ depth:
   backend: depthpro
   model: apple/DepthPro-hf
   use_fov_model: false
+  # Depth estimators often bleed the foreground depth a little beyond a sharp
+  # silhouette. Exclude this wider ring before constructing the background-only
+  # depth field used to drive blur. 64 px @ 4K is ~16 px at 1K.
+  edge_guard_px_at_4k: 64
 
 plate:
   foreground_threshold: 0.01
