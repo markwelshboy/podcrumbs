@@ -1,8 +1,9 @@
 # sl:name bg-blur
 # sl:description Depth-aware background blur with matte-protected subject edges
+# sl:app background-blur
 # sl:input 1
 # sl:output 2
-# sl:setup-version 1
+# sl:setup-version 2
 # sl:memcheck
 
 _podcrumbs_prepare_repo() {
@@ -35,5 +36,5 @@ sl_run() {
   local py="$SL_CACHE_DIR/podcrumbs/envs/background-blur/bin/python"
   export HF_HOME="$SL_CACHE_DIR/huggingface"
   cd "$app"
-  "$py" background_blur.py "$SL_ARG_1" "$SL_ARG_2" "${SL_EXTRA_ARGS[@]}"
+  "$py" run.py "$SL_ARG_1" "$SL_ARG_2" "${SL_EXTRA_ARGS[@]}"
 }
