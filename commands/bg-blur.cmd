@@ -3,7 +3,7 @@
 # sl:app background-blur
 # sl:input 1
 # sl:output 2
-# sl:setup-version 2
+# sl:setup-version 3
 # sl:memcheck
 
 _podcrumbs_prepare_repo() {
