@@ -1,8 +1,9 @@
 # sl:name text-remove
 # sl:description OCR-guided text and watermark removal with selectable image editors
+# sl:app text-removal
 # sl:input 1
 # sl:output 2
-# sl:setup-version 1
+# sl:setup-version 2
 # sl:memcheck
 
 _podcrumbs_prepare_repo() {
@@ -35,5 +36,5 @@ sl_run() {
   local py="$SL_CACHE_DIR/podcrumbs/envs/text-removal/bin/python"
   export HF_HOME="$SL_CACHE_DIR/huggingface"
   cd "$app"
-  "$py" remove_text.py "$SL_ARG_1" "$SL_ARG_2" "${SL_EXTRA_ARGS[@]}"
+  "$py" run.py "$SL_ARG_1" "$SL_ARG_2" "${SL_EXTRA_ARGS[@]}"
 }
