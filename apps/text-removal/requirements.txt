@@ -1,0 +1,16 @@
+# torch/torchvision are installed by bootstrap.sh so the CUDA wheel can be selected.
+# diffusers is installed from GitHub main because Qwen Image Edit Plus and
+# FLUX.2 Klein support have both evolved during 2026.
+accelerate>=1.12
+transformers>=4.57
+huggingface_hub>=0.36
+safetensors>=0.6
+sentencepiece>=0.2
+protobuf>=5
+Pillow>=11
+numpy>=1.26
+opencv-python-headless>=4.10
+PyYAML>=6.0
+rich>=13.9
+tqdm>=4.67
+paddleocr>=3.5

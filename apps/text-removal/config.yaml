@@ -1,0 +1,144 @@
+# Text / watermark removal editor benchmark.
+# Source images can be high resolution (e.g. 3000x4000). Only local context
+# crops go through the generative editor; final compositing stays source-res.
+
+input:
+  recursive: false
+  extensions: [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"]
+
+ocr:
+  # Keep OCR on CPU so the image editor owns GPU VRAM.
+  engine: transformers
+  device: cpu
+  lang: en
+  ocr_version: PP-OCRv6
+  text_det_limit_side_len: 2560
+  text_det_limit_type: max
+  text_det_thresh: 0.20
+  text_det_box_thresh: 0.35
+  text_det_unclip_ratio: 1.5
+  min_rec_score: 0.0
+
+selection:
+  # Regexes apply to OCR-recognized text. Null means no filter.
+  # Example include_regex: '(?i)sample|copyright|@creator'
+  include_regex: null
+  exclude_regex: null
+
+regions:
+  # Nearby OCR words are merged and repaired together.
+  group_gap_px: 32
+
+  # Source-resolution pixels. Overmasking is intentional: remove antialiasing,
+  # outline, glow, shadow and JPEG ringing instead of leaving watermark ghosts.
+  mask_dilate_px: 18
+  blend_feather_px: 12
+
+  # Qwen/FireRed/Klein see much more context than we paste back.
+  context_scale: 3.0
+  min_context_px: 160
+  max_crop_aspect: 2.0
+
+benchmark:
+  # Normal non-comparison runs use this unless --editor is supplied.
+  default_editor: firered
+
+  # --compare-editors runs these sequentially (never resident together).
+  compare_editors: [qwen, firered, klein]
+  seed: 12345
+
+editors:
+  qwen:
+    kind: qwen_family
+    label: Qwen Image Edit 2511
+    model: Qwen/Qwen-Image-Edit-2511
+    device: cuda
+    dtype: bfloat16
+    cpu_offload: false
+    generator_device: cuda
+
+    # Preserve crop aspect ratio, target ~1MP, dimensions multiple of 32.
+    target_megapixels: 1.0
+    dimension_multiple: 32
+    pre_resize_input: true
+
+    num_inference_steps: 40
+    true_cfg_scale: 4.0
+    guidance_scale: 1.0
+    negative_prompt: " "
+    seed: 12345
+    prompt: &repair_prompt >-
+      Remove all overlaid text, watermark lettering, logos, captions, or graphic
+      overlay marks visible in this image crop. Reconstruct the original scene
+      naturally where the overlay was, using surrounding visual context. Preserve
+      everything else exactly: person identity, face, hair, anatomy, pose,
+      clothing, objects, textures, lighting, colors, depth of field, perspective,
+      and photographic style. Do not add text, letters, logos, symbols, borders,
+      or new objects. The result should look like the same photograph before the
+      overlay was added.
+
+  firered:
+    kind: qwen_family
+    label: FireRed Image Edit 1.1
+    model: FireRedTeam/FireRed-Image-Edit-1.1
+    device: cuda
+    dtype: bfloat16
+    cpu_offload: false
+    generator_device: cuda
+    target_megapixels: 1.0
+    dimension_multiple: 32
+    pre_resize_input: true
+    num_inference_steps: 40
+    true_cfg_scale: 4.0
+    guidance_scale: 1.0
+    negative_prompt: " "
+    seed: 12345
+    prompt: *repair_prompt
+
+  klein:
+    kind: flux_klein
+    label: FLUX.2 Klein 9B
+    model: black-forest-labs/FLUX.2-klein-9B
+    device: cuda
+    dtype: bfloat16
+    cpu_offload: false
+    generator_device: cuda
+
+    # Diffusers' Klein reference editing supports arbitrary ratios; we preserve
+    # the context-crop ratio, target ~1MP, and use a multiple of 16.
+    target_megapixels: 1.0
+    dimension_multiple: 16
+    pre_resize_input: true
+
+    # Distilled Klein 9B is intended for 4-step inference.
+    num_inference_steps: 4
+    guidance_scale: 1.0
+    seed: 12345
+    prompt: *repair_prompt
+
+registration:
+  # Every backend is independently registered against untouched source pixels
+  # before blending. This corrects small translation/zoom/rotation drift.
+  enabled: true
+  exclude_mask_expand_px: 48
+  min_stable_fraction: 0.20
+  sift_features: 4000
+  sift_contrast_threshold: 0.02
+  match_ratio: 0.75
+  min_matches: 10
+  ransac_reproj_px: 3.0
+  ransac_max_iters: 3000
+  ransac_confidence: 0.995
+  max_scale_delta: 0.05
+  max_rotation_deg: 2.0
+  max_translation_fraction: 0.08
+  min_inlier_ratio: 0.35
+  min_mae_improvement: 0.03
+
+output:
+  save_original: true
+  save_detection_overlay: true
+  save_masks: true
+  save_crops: true
+  save_editor_edits: true
+  jpeg_quality: 96

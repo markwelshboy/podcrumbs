@@ -1,0 +1,12 @@
+schema: 1
+name: text-removal
+title: Text / Watermark Removal Editor Benchmark
+commands: [text-remove]
+remote:
+  entrypoint: remove_text.py
+  default_config: config.yaml
+  gpu: true
+artifacts:
+  report: report.html
+  comparison: comparison.csv
+  metadata: metadata.json
