@@ -9,13 +9,13 @@ controls:
     help: Image editor backends to run sequentially.
   dry_run:
     flag: --dry-run
-    type: boolean
+    type: flag
     default: false
     help: Run OCR, masks and crop QC without loading an image editor.
   recursive:
     flag: --recursive
     negative_flag: --no-recursive
-    type: boolean
+    type: toggle
     default: false
     help: Scan input subdirectories.
   limit:
@@ -46,11 +46,11 @@ controls:
     help: Base generation seed used by all selected editors.
   force:
     flag: --force
-    type: boolean
+    type: flag
     default: false
     help: Re-run OCR preparation and editor outputs.
   force_edits:
     flag: --force-edits
-    type: boolean
+    type: flag
     default: false
     help: Keep cached OCR preparation but re-run editor outputs.
