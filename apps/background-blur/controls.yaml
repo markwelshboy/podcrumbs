@@ -1,0 +1,52 @@
+schema: 1
+controls:
+  fbcnn:
+    flag: --fbcnn
+    type: choice
+    metavar: MODE
+    choices: [on, auto, off]
+    default: auto
+    help: JPEG artifact restoration mode.
+  fbcnn_qf:
+    flag: --fbcnn-qf
+    type: string
+    metavar: QF
+    default: auto
+    help: FBCNN quality control; auto or 1..100, lower means stronger cleanup.
+  matte:
+    flag: --matte
+    type: choice
+    metavar: MODE
+    choices: [high, maximum]
+    default: maximum
+    help: Subject matte quality path.
+  preset:
+    flag: --preset
+    type: choice
+    metavar: PRESET
+    choices: [subtle, natural, strong]
+    default: natural
+    help: Depth-aware blur preset.
+  compare:
+    flag: --compare
+    type: flag
+    default: false
+    help: Render all blur presets plus a uniform-blur comparison.
+  recursive:
+    flag: --recursive
+    negative_flag: --no-recursive
+    type: toggle
+    default: true
+    help: Scan input subdirectories.
+  limit:
+    flag: --limit
+    type: integer
+    metavar: N
+    default: 0
+    minimum: 0
+    help: Process only the first N images; 0 means all.
+  force:
+    flag: --force
+    type: flag
+    default: false
+    help: Recompute cached stages in an existing output directory.

@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+ALIASES = {
+    "bg-remove": "background-removal",
+    "background-removal": "background-removal",
+    "bg-blur": "background-blur",
+    "background-blur": "background-blur",
+    "text-remove": "text-removal",
+    "text-removal": "text-removal",
+}
+
+
+def usage() -> int:
+    print("usage: crumb APP ACTION [args...]", file=sys.stderr)
+    print("example: crumb bg-remove review ~/results/bg-remove-01", file=sys.stderr)
+    return 2
+
+
+def main() -> int:
+    if len(sys.argv) < 3:
+        return usage()
+    app = ALIASES.get(sys.argv[1], sys.argv[1])
+    action = sys.argv[2]
+    companion = ROOT / "apps" / app / "companions" / f"{action}.py"
+    if not companion.is_file():
+        print(f"crumb: companion not found: {app}/{action}", file=sys.stderr)
+        return 2
+    py = os.environ.get("PYTHON", sys.executable or "python3")
+    return subprocess.call([py, str(companion), *sys.argv[3:]])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,22 @@
+schema: 1
+controls:
+  methods:
+    flag: --methods
+    type: multi_choice
+    metavar: METHOD
+    choices: [rmbg2, rmbg2_vitmatte, birefnet_hr, birefnet_hr_refined, birefnet_vitmatte, ben2_base, ben2_refined]
+    default: [rmbg2, rmbg2_vitmatte, birefnet_hr, birefnet_hr_refined, birefnet_vitmatte, ben2_base, ben2_refined]
+    help: Background-removal methods to run.
+  recursive:
+    flag: --recursive
+    negative_flag: --no-recursive
+    type: toggle
+    default: true
+    help: Scan input subdirectories.
+  limit:
+    flag: --limit
+    type: integer
+    metavar: N
+    default: 0
+    minimum: 0
+    help: Process only the first N images; 0 means all.

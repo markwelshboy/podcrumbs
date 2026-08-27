@@ -1,0 +1,60 @@
+schema: 1
+
+input:
+  extensions: [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]
+
+runtime:
+  device: cuda
+  dtype: float16
+  unload_between_backends: true
+
+methods:
+  rmbg2:
+    label: BRIA RMBG-2.0
+    pipeline: rmbg2
+  rmbg2_vitmatte:
+    label: RMBG-2.0 → ViTMatte-B
+    pipeline: rmbg2_vitmatte
+  birefnet_hr:
+    label: BiRefNet HR matte
+    pipeline: birefnet
+  birefnet_hr_refined:
+    label: BiRefNet HR + foreground refine
+    pipeline: birefnet_refined
+  birefnet_vitmatte:
+    label: BiRefNet HR → ViTMatte-B
+    pipeline: birefnet_vitmatte
+  ben2_base:
+    label: BEN2 Base
+    pipeline: ben2
+  ben2_refined:
+    label: BEN2 Base + refine
+    pipeline: ben2_refined
+
+rmbg2:
+  model: briaai/RMBG-2.0
+  input_size: 1024
+
+birefnet:
+  model: ZhengPeng7/BiRefNet_HR-matting
+  input_size: 2048
+
+foreground_refine:
+  large_blur: 90
+  small_blur: 6
+
+ben2:
+  model: PramaLLC/BEN2
+
+vitmatte:
+  model: hustvl/vitmatte-base-composition-1k
+  max_long_side: 2048
+  sure_foreground_threshold: 0.90
+  possible_foreground_threshold: 0.03
+  erode_px_at_2048: 10
+  dilate_px_at_2048: 22
+
+preview:
+  max_side: 900
+  checker_size: 32
+  midgray: 128

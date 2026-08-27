@@ -1,0 +1,56 @@
+schema: 1
+controls:
+  editors:
+    flag: --editors
+    type: multi_choice
+    metavar: EDITOR
+    choices: [qwen, firered, klein]
+    default: [firered]
+    help: Image editor backends to run sequentially.
+  dry_run:
+    flag: --dry-run
+    type: flag
+    default: false
+    help: Run OCR, masks and crop QC without loading an image editor.
+  recursive:
+    flag: --recursive
+    negative_flag: --no-recursive
+    type: toggle
+    default: false
+    help: Scan input subdirectories.
+  limit:
+    flag: --limit
+    type: integer
+    metavar: N
+    default: 0
+    minimum: 0
+    help: Process only the first N images; 0 means all.
+  include_regex:
+    flag: --include-regex
+    type: string
+    metavar: REGEX
+    default: null
+    help: Only repair OCR text matching this regular expression.
+  exclude_regex:
+    flag: --exclude-regex
+    type: string
+    metavar: REGEX
+    default: null
+    help: Ignore OCR text matching this regular expression.
+  seed:
+    flag: --seed
+    type: integer
+    metavar: N
+    default: 12345
+    minimum: 0
+    help: Base generation seed used by all selected editors.
+  force:
+    flag: --force
+    type: flag
+    default: false
+    help: Re-run OCR preparation and editor outputs.
+  force_edits:
+    flag: --force-edits
+    type: flag
+    default: false
+    help: Keep cached OCR preparation but re-run editor outputs.

@@ -1,0 +1,81 @@
+schema: 1
+
+runtime:
+  device: cuda
+  dtype: float16
+
+input:
+  extensions: ['.png', '.jpg', '.jpeg', '.webp', '.tif', '.tiff']
+
+fbcnn:
+  repo_dir: vendor/FBCNN
+  model_path: models/fbcnn_color.pth
+  model_url: https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_color.pth
+  tile_size: 1024
+  tile_overlap: 96
+
+matte:
+  modes:
+    high:
+      pipeline: birefnet
+    maximum:
+      pipeline: birefnet_vitmatte
+
+birefnet:
+  model: ZhengPeng7/BiRefNet_HR-matting
+  input_size: 2048
+
+vitmatte:
+  model: hustvl/vitmatte-base-composition-1k
+  max_long_side: 2048
+  sure_foreground_threshold: 0.90
+  possible_foreground_threshold: 0.03
+  erode_px_at_2048: 10
+  dilate_px_at_2048: 24
+  # ViTMatte is a refiner here, not a second segmenter. Prevent it from growing
+  # new opaque foreground outside the BiRefNet support; this avoids dark/colored
+  # background pixels becoming a hard halo when the surrounding background blurs.
+  max_expand_px_at_2048: 0
+
+depth:
+  backend: depthpro
+  model: apple/DepthPro-hf
+  use_fov_model: false
+  # Depth estimators often bleed the foreground depth a little beyond a sharp
+  # silhouette. Exclude this wider ring before constructing the background-only
+  # depth field used to drive blur. 64 px @ 4K is ~16 px at 1K.
+  edge_guard_px_at_4k: 64
+
+plate:
+  foreground_threshold: 0.01
+  expand_px_at_4k: 10
+  method: nearest
+
+blur:
+  presets:
+    subtle:
+      strength: 0.45
+      focus_tolerance: 0.055
+      gamma: 1.25
+      max_radius_px_at_4k: 18
+    natural:
+      strength: 0.72
+      focus_tolerance: 0.040
+      gamma: 1.15
+      max_radius_px_at_4k: 34
+    strong:
+      strength: 1.00
+      focus_tolerance: 0.025
+      gamma: 1.00
+      max_radius_px_at_4k: 52
+  pyramid_fractions: [0.0, 0.08, 0.16, 0.28, 0.42, 0.60, 0.80, 1.0]
+  depth_normalization_percentile: 96.0
+  subject_core_alpha: 0.95
+  subject_core_erode_px_at_4k: 24
+
+output:
+  png_compress_level: 6
+  save_background_plate: true
+  save_depth_npy: true
+  save_intermediates: true
+  preview_long_side: 1200
